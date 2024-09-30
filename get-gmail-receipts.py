@@ -18,7 +18,7 @@
 #         valid pickup location
 #         valid dropoff location
 #         valid time completed
-        # ADD LOG associated with ROYAL CARS AND NOT UBER
+        # ADD LOG associated with Provider/ROYAL CARS AND NOT UBER
 
 #     save to royal_cars_{MONTH.YEAR}.csv (save to google drive too as backup?)
 
