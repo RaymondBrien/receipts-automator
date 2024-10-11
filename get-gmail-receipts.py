@@ -1,61 +1,91 @@
-# # import gmail api
+import calendar
+import pprint
 
-# # type 1 = Royal Cars receipts
-# call gmail api
+from datetime import datetime
+from typing import TypedDict
 
-# get all emails from 'taxi' label
-
-# filter by month
-
-# filter by COMPLETED in the email description
-
-# for each email:
-#     extract relevant data:
-#         valid date
-#         valid time
-#         valid amount
-#         valid trasaction id
-#         valid pickup location
-#         valid dropoff location
-#         valid time completed
-        # ADD LOG associated with Provider/ROYAL CARS AND NOT UBER
-
-#     save to royal_cars_{MONTH.YEAR}.csv (save to google drive too as backup?)
-
-# # error handling
-# all relevant fields are not Null
-# check only within date ranage
-# check no duplicates - via transaction id?
-# confirm no 'booked' emails are included (only completed trips)
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 
-# import uber api
-# handle creds
 
-# # # type 2 = Ubers
-# for each trip:
-#     extract relevant data:
-#         valid date
-#         valid time
-#         valid amount
-#         valid trasaction id
-#         valid pickup location
-#         valid dropoff location
-#         valid time completed
-#         LOG AS UBER (not RoyalCars)
-#
-# Save to ubers_{MONTH.YEAR}.csv (save to google drive too as backup?)
+# If modifying these scopes, delete the file token.json.
+SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+TAXI_LABEL_ID = 'Label_8621806233538209042'
+PROVIDER = {"Royal Cars": 1, "Uber": 2}
+
+# Add trip dictionary type safety
+class trip(TypedDict):
+        date: datetime
+        time: str
+        amount: float
+        transaction_id: str
+        pickup_location: str
+        dropoff_location: str
+        time_completed: datetime # TODO handle/transform to date later? confirm correct date handling
+        provider: object # PROVIDER
 
 
-# error handling
-# all relevant fields are not Null
-# check only within date ranage
-# check no duplicates - via transaction id?
-# handle any api call restrictions or auth errors
+class getReceipts():
+    def __init__(self):
 
-# global utility functions:
-# count of trips per day
-# confirm total number of trips for the month
-# convert any date time into correct format
-# convert any location data into long/lat?
-# Merge uber and royal car csv files into one and save to drive
+        self.request_time = datetime.now()  # log time of request
+        print('class initialized')
+
+        # call functions
+        self.service = self.call_gmail_api()  # initialise service
+
+
+    def call_gmail_api(self):
+
+        try:
+            # Load credentials from file
+            creds = Credentials.from_authorized_user_file('token.json')
+            # Call the Gmail API
+            service = build('gmail', 'v1', credentials=creds)
+            print('Got credentials')
+
+        except HttpError as error:
+            # TODO(developer) - Handle errors from gmail API.
+            print(f"An error occurred: {error}")
+
+        return service
+
+
+
+    def get_message_ids_with_taxi_label(self, year: datetime.year, month: datetime.month):
+        print(f"Getting messages with taxi label for {month} {year}" )
+        def check_service():
+            if self.service == None:
+                print(f"An error occurred: {error}")
+                print("Calling API again")
+                self.service = self.call_gmail_api()
+            if self.service == None:
+                print("Could not get service")
+                return  # exit early
+
+        # Get all emails from the 'taxi' label within specified month
+        messages = self.service.users().messages().list(
+            userId='me',
+            labelIds=[TAXI_LABEL_ID],
+            q=f"after:{year}/{month}/01 before:{year}/{month + 1}/01"
+        ).execute()
+        # me = authenticated user
+
+        # print(messsages.length())
+
+        # avoid message duplicates
+        return set([message['id'] for message in messages['messages']])
+
+
+
+
+r_date = [datetime.year, datetime.month]
+r_date[0] = 2024
+r_date[1] = 9
+
+all_messages = getReceipts().get_message_ids_with_taxi_label(r_date[0], r_date[1])
+
